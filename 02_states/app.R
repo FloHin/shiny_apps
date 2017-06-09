@@ -38,6 +38,20 @@ chooseData = function(chooser) {
   }
 }
 
+chooseNorm = function(chooser, x, xfit) {
+  N <- length(x);
+  switch(as.character(chooser),
+         "1"={y <- dnorm(xfit, mean=mean(x), sd=sd(x))},
+         "2"={y <- dnorm(xfit, mean=mean(x), sd=sd(x))},
+         "3"={y <- dnorm(xfit, mean=mean(x), sd=sd(x))},
+         "4"={y <- dnorm(xfit, mean=mean(x), sd=sd(x))},
+         "5"={y <- dnorm(xfit, mean=mean(x), sd=sd(x))},
+         stop("stop?")
+  )
+  y;
+  
+}
+
 server <- function(input, output) {
   
   selector<-reactive({as.numeric(input$chooser)});
@@ -48,22 +62,44 @@ server <- function(input, output) {
   
   output$p1 <- renderPlot({
     if (input$chooser == 0) {
-      pairs(state.x77, lower.panel = panel.smooth,  upper.panel = panel.cor)  
+      plot(ss)
     }
     
     if (input$chooser != 0) {
       x <- chooseData(input$chooser);
       bins <- seq(min(x), max(x), length.out = input$bins + 1)
       hist(x, breaks = bins, col = 'skyblue', border = 'white')
+      
+      xfit<-seq(min(x),max(x),length=length(x)) 
+      
+      y = chooseNorm(input$chooser,x, xfit)
+      print(density(x));
+      plot(density(x));
+      #lines(xfit,x,col='red')
+      lines(xfit, y, col="red", lwd=1)
+      
     }
   })
   output$p2 <- renderPlot({
     if (input$chooser != 0) {
       x <- chooseData(input$chooser);
-      qqnorm(x)
+      qqnorm(x);qqline(x);
     }
   })
-
+  output$p3 <- renderPlot({
+    if (input$chooser != 0) {
+      x <- chooseData(input$chooser);
+      boxplot(x, horizontal = TRUE)
+    }
+  })
+  output$p4 <- renderPlot({
+    if (input$chooser != 0) {
+      x <- chooseData(input$chooser);
+      qqnorm(x);qqline(x);
+    }
+  })
+  
+  
   
   output$distPlot1 <- renderPlot({
     #vioplot(x)
@@ -103,13 +139,17 @@ ui <- fluidPage(
           
         column(6,
                plotOutput("p1")
-               #plotOutput("p2")
         ),
         column(6,
-               #h2(textOutput("title")),
-               #plotOutput("p1"),
                plotOutput("p2")
+        ),
+        column(6,
+              plotOutput("p3")
+        ),
+        column(6,
+               plotOutput("p4")
         )
+        
       )
       
       
