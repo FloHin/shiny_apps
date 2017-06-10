@@ -10,11 +10,11 @@ library(vioplot)
 #'
 setupSidebarContent <- function(input, output) {
   # add some content to build up sidebar; below is only example code that can be removed
-  return(
+  return(list(
     fluidRow(
       column(3, verbatimTextOutput("renderedSelectdPredefinedFilter"))
     )
-  )
+  ))
 }
 
 #' Setup predefined filter objects.
