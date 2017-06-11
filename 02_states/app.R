@@ -2,20 +2,25 @@ library(shiny)
 library(vioplot)
 
 ss <- as.data.frame(state.x77)
-# panel.cor
-panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
-{
-  usr <- par("usr"); on.exit(par(usr))
-  par(usr = c(0, 1, 0, 1))
-  r <- abs(cor(x, y))
-  txt <- format(c(r, 0.123456789), digits = digits)[1]
-  txt <- paste0(prefix, txt)
-  if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
-  text(0.5, 0.5, txt, cex = cex.cor * r)
-}
 
+
+chooser_names = list(
+  "All",
+  "Population",
+  "Income",
+  "Illiteracy",
+  "Life.Exp" ,
+  "Murder");
 chooser_options = list(
   "All" = 0,
+  "Population" = 1,
+  "Income" = 2,
+  "Illiteracy" = 3,
+  "Life.Exp" = 4,
+  "Murder" = 5);
+
+chooser2_options = list(
+  "None" = 0,
   "Population" = 1,
   "Income" = 2,
   "Illiteracy" = 3,
@@ -52,13 +57,40 @@ chooseNorm = function(chooser, x, xfit) {
   
 }
 
+textList = function(default, i) {
+  if (i == 0) {
+    default;
+  } else {
+    chooser_names[[1+as.numeric(i)]]
+  }
+}
+
+clab = function(i) {
+  textList("",i);
+}
+
+textVersus = function(i1, i2) {
+  if (i1 == 0 || i2 == 0) {
+    ""
+  } else {
+    paste(textList("All",i1), textList("All",i2), sep = " vs ");
+    
+  }
+}
+
 server <- function(input, output) {
   
   selector<-reactive({as.numeric(input$chooser)});
 
   output$title <- renderText({ 
-    paste("", chooser_options[input$chooser])
-  })
+    textList("All",input$chooser);
+
+    #paste("", chooser_options[input$chooser])
+  });
+  
+  output$versus <- renderText({
+    textVersus(input$chooser, input$chooser2);
+  });
   
   output$p1 <- renderPlot({
     if (input$chooser == 0) {
@@ -74,10 +106,10 @@ server <- function(input, output) {
       
       y = chooseNorm(input$chooser,x, xfit)
       print(density(x));
-      plot(density(x));
+      plot(density(x), main = paste(textList("",input$chooser), " density", sep=" vs "));
       #lines(xfit,x,col='red')
       lines(xfit, y, col="red", lwd=1)
-      
+      #title();
     }
   })
   output$p2 <- renderPlot({
@@ -89,13 +121,17 @@ server <- function(input, output) {
   output$p3 <- renderPlot({
     if (input$chooser != 0) {
       x <- chooseData(input$chooser);
-      boxplot(x, horizontal = TRUE)
+      boxplot(x, horizontal = TRUE);
+      title("Boxplot");
     }
   })
   output$p4 <- renderPlot({
-    if (input$chooser != 0) {
+    if (input$chooser != 0 && input$chooser2 != 0 ) {
       x <- chooseData(input$chooser);
-      qqnorm(x);qqline(x);
+      y <- chooseData(input$chooser2);
+      
+      plot(x,y, xlab = clab(input$chooser), ylab = clab(input$chooser2));
+      title(textVersus(input$chooser, input$chooser2));
     }
   })
   
@@ -110,15 +146,18 @@ server <- function(input, output) {
 ui <- fluidPage(
   
   # Application title
-  titlePanel("Swiss!"),
   
   # Sidebar with a slider input for the number of bins
   sidebarLayout(
     sidebarPanel(
       
+      titlePanel("UE2 states.x77"),
       
     radioButtons("chooser", label = h3("Choose variable"),
         choices = chooser_options,selected = 0),
+    
+    radioButtons("chooser2", label = h3("Choose comparison"),
+                 choices = chooser2_options,selected = 0),
     
       sliderInput("bins",
                   "Number of bins:",
@@ -147,6 +186,7 @@ ui <- fluidPage(
               plotOutput("p3")
         ),
         column(6,
+               textOutput("versus"),
                plotOutput("p4")
         )
         
