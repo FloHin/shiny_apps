@@ -1,5 +1,5 @@
 library(MASS)
-library(moments)
+library(e1071)
 library(shiny)
 library(utils)
 library(vioplot)
@@ -71,21 +71,30 @@ renderMetaData <- function(index, doRender = TRUE) {
     mad <- round(mad(data), 3)
     skewnessFactor <- round(skewness(data)[[1]], 3)
     kurtosisFactor <- round(kurtosis(data)[[1]], 3)
-    #fnb = fitdistr(data, "negative binomial")$loglik
     normalFactor = round(fitdistr(data, "normal")$loglik, 3)
     logFactor = round(fitdistr(data, "lognormal")$loglik, 3)
     
+    # find text of skewness
     if (skewnessFactor > 0) {
       skewnessText = "right tailed"
     } else {
       skewnessText = "left tailed"
     }
     
+    # find text of kurtosis
+    if (kurtosisFactor > 0) {
+      kurtosisText = "steilgipflig"
+    } else if (kurtosisFactor == 0) {
+      kurtosisText = "normalgipflig"
+    } else {
+      kurtosisText = "flachgipflig"
+    }
+    
     paste0(
       "Stand. Dev.: ", standardDeviation, "\n",
       "MAD: ", mad, "\n",
       "Skewness: ", skewnessFactor, " -> ", paste0(skewnessText), "\n",
-      "Kusrtosis: ", kurtosisFactor, "\n",
+      "Kusrtosis: ", kurtosisFactor, " -> ", paste0(kurtosisText), "\n",
       "Normal Distribution Factor: ", normalFactor, "\n",
       "Logarithmic Distribution Factor: ", logFactor
     )

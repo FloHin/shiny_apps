@@ -1,4 +1,5 @@
 library(shiny)
+library(shinythemes)
 library(utils)
 library(vioplot)
 
@@ -35,7 +36,7 @@ setupSidebarContent <- function(input, output) {
 }
 
 # define UI for application that draws a histogram
-shinyUI(fluidPage(
+shinyUI(fluidPage(theme = shinytheme("cyborg"),
   # application title
   titlePanel("Exercise 1: Swiss"),
   
