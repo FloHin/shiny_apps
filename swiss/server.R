@@ -75,10 +75,16 @@ renderMetaData <- function(index, doRender = TRUE) {
     normalFactor = round(fitdistr(data, "normal")$loglik, 3)
     logFactor = round(fitdistr(data, "lognormal")$loglik, 3)
     
+    if (skewnessFactor > 0) {
+      skewnessText = "right tailed"
+    } else {
+      skewnessText = "left tailed"
+    }
+    
     paste0(
       "Stand. Dev.: ", standardDeviation, "\n",
       "MAD: ", mad, "\n",
-      "Skewness: ", skewnessFactor, "\n",
+      "Skewness: ", skewnessFactor, " -> ", paste0(skewnessText), "\n",
       "Kusrtosis: ", kurtosisFactor, "\n",
       "Normal Distribution Factor: ", normalFactor, "\n",
       "Logarithmic Distribution Factor: ", logFactor
@@ -115,7 +121,7 @@ renderHistogram <- function(index, name, bins = 30, doRender = TRUE) {
     renderPlot({
       data <- swiss[, index]
       binsSeq <- seq(min(data), max(data), length.out = bins + 1)
-      hist(data, breaks = binsSeq, main = paste("Histogram of ", name))
+      hist(data, breaks = binsSeq, main = paste("Histogram of ", name), xlab = "Value")
     })
   }
 }
