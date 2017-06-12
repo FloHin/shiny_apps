@@ -67,14 +67,17 @@ renderSummary <- function(index, doRender = TRUE) {
 renderMetaData <- function(index, doRender = TRUE) {
   if (doRender) {
     data <- swiss[, index]
+    standardDeviation <- round(sd(data), 3)
+    mad <- round(mad(data), 3)
     skewnessFactor <- round(skewness(data)[[1]], 3)
     kurtosisFactor <- round(kurtosis(data)[[1]], 3)
     #fnb = fitdistr(data, "negative binomial")$loglik
     normalFactor = round(fitdistr(data, "normal")$loglik, 3)
     logFactor = round(fitdistr(data, "lognormal")$loglik, 3)
-    highestDistFactor <- max(c(normalFactor, logFactor))
     
     paste0(
+      "Stand. Dev.: ", standardDeviation, "\n",
+      "MAD: ", mad, "\n",
       "Skewness: ", skewnessFactor, "\n",
       "Kusrtosis: ", kurtosisFactor, "\n",
       "Normal Distribution Factor: ", normalFactor, "\n",
@@ -95,7 +98,7 @@ renderDistribution <- function(index, name, doRender = TRUE) {
       data <- swiss[, index]
       dataSorted <- seq(from = min(data), to = max(data), length = length(data))
       y = dnorm(dataSorted, mean = mean(data), sd = sd(data))
-      plot(density(data), main = name);
+      plot(density(data), main = paste("Distribution of ", name));
       lines(dataSorted, y, col = "red")
     })
   }
@@ -112,7 +115,7 @@ renderHistogram <- function(index, name, bins = 30, doRender = TRUE) {
     renderPlot({
       data <- swiss[, index]
       binsSeq <- seq(min(data), max(data), length.out = bins + 1)
-      hist(data, breaks = binsSeq, xlab = name)
+      hist(data, breaks = binsSeq, main = paste("Histogram of ", name))
     })
   }
 }
@@ -128,7 +131,7 @@ renderBoxPlot <- function(index, name, bins = 30, doRender = TRUE) {
   if (doRender) {
     renderPlot({
       data <- swiss[, index]
-      boxplot(data, horizontal = TRUE)
+      boxplot(data, horizontal = TRUE, main = paste("Boxplot of ", name))
     })
   }
 }
@@ -158,7 +161,7 @@ renderQQPlot <- function(index, name, doRender = TRUE) {
   if (doRender) {
     renderPlot({
       data <- swiss[, index]
-      qqnorm(data, main = name)
+      qqnorm(data, main = paste("QQ Plot of ", name))
       qqline(data, col = 'red')
     })
   }
@@ -174,7 +177,31 @@ renderScatterPlot <- function(index, name, doRender = TRUE) {
   if (doRender) {
     renderPlot({
       data <- swiss[, index]
-      plot(data)
+      plot(data, main = paste("Scatterplot of ", name))
+    })
+  }
+}
+
+#' Renders a Scatter Plot that represents the data as specified by given indexes and names, to show
+#' releation between them.
+#' 
+#' @param index The index from swiss dataset to render
+#' @param name The name from the swiss dataset to render
+#' @param index2 The index from swiss dataset to render
+#' @param name2 The name from the swiss dataset to render
+#' @param doRender If this plot should be rendered; by default TRUE
+#' 
+renderScatterPlotVs <- function(index, name, index2, name2, doRender = TRUE) {
+  if (doRender) {
+    renderPlot({
+      data = swiss[, index]
+      data2 = swiss[, index2]
+      corr = round(cor(data, data2), 4)
+      
+      plot(data, data2, xlab = name, ylab = name2)
+      abline(lm(data2 ~ data), col="red")
+      lines(lowess(data, data2), col="blue")
+      title(paste(name, " vs. ", name2, ": ", corr, sep = ""))
     })
   }
 }
@@ -257,8 +284,8 @@ init <- function(input, output) {
     } else {
       tabsetPanel(id = "selectedTab", selected = input$selectedTab,
         tabPanel("Distribution",
-           renderDistribution(index, name),
-           renderDistribution(index2, name2, doRender = render2nd)
+          renderDistribution(index, name),
+          renderDistribution(index2, name2, doRender = render2nd)
         ),
         tabPanel("Histogram",
           renderHistogram(index, name, bins = bins),
@@ -278,7 +305,8 @@ init <- function(input, output) {
         ),
         tabPanel("Scatterplot",
           renderScatterPlot(index, name),
-          renderScatterPlot(index2, name2, doRender = render2nd)
+          renderScatterPlot(index2, name2, doRender = render2nd),
+          renderScatterPlotVs(index, name, index2, name2, doRender = render2nd)
         )
       )
     }
