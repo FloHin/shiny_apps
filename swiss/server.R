@@ -1,3 +1,5 @@
+library(MASS)
+library(moments)
 library(shiny)
 library(utils)
 library(vioplot)
@@ -20,169 +22,161 @@ sourceHere <- function(x, ...) {
 # Source all required files in same directory
 sourceHere('corFunction.R')
 
-#' Renders distribution plots.
+doRenderVariables <- function(index) {
+  return(index != 0)
+}
+
+#' An helper function that returns if the ourput should be rendered.
 #' 
-#' @param output The output from the server
-#' @param selectedVar The first variable that was selected at the UI
-#' @param selectedVar2 The second variable that was selected at the UI
+#' @param index The index of first selected variable
+#' @param index2 The index of second selected variable
+#' @return Returns TRUE if the output should be rendered; otherwise FALSE
 #' 
-renderDistribution <- function(output, selectedVar, selectedVar2) {
-  output$distribution <- renderPlot({
-    index <- strtoi(selectedVar()[1]) 
-    name <- selectedVar()[2]
+doRender <- function(index, index2) {
+  return((doRenderVariables(index)) && (doRenderVariables(index2)) && (index != index2))
+}
+
+#' Renders the stats string for the selected variables name.
+#' 
+#' @param name The name from the swiss dataset to render
+#' @param doRender If this plot should be rendered; by default TRUE
+#' 
+renderStatsName <- function(name, doRender = TRUE) {
+  if (doRender) {
+    paste("<h4>Stats of '", name, "'</h4>", sep = "")
+  }
+}
+
+#' Renders a summary of selected data as specified by given index.
+#' 
+#' @param index The index from swiss dataset to render
+#' @param doRender If this plot should be rendered; by default TRUE
+#' 
+renderSummary <- function(index, doRender = TRUE) {
+  if (doRender) {
     data <- swiss[, index]
-  
-    dataSorted <- seq(from = min(data), to = max(data), length = length(data))
-    y = dnorm(dataSorted, mean = mean(data), sd = sd(data))
-    plot(density(data), main = name);
-    lines(dataSorted, y, col = "red")
-  })
-  output$distribution2 <- renderPlot({
-    if (!identical(strtoi(selectedVar()[1]), strtoi(selectedVar2()[1]))) {
-      index <- strtoi(selectedVar2()[1])
-      name <- selectedVar2()[2]
+    summary(data)
+  }
+}
+
+#' Renders metadata of selected variable as specified by given index.
+#' 
+#' @param index The index from swiss dataset to render
+#' @param doRender If this plot should be rendered; by default TRUE
+#' 
+renderMetaData <- function(index, doRender = TRUE) {
+  if (doRender) {
+    data <- swiss[, index]
+    skewnessFactor <- round(skewness(data)[[1]], 3)
+    kurtosisFactor <- round(kurtosis(data)[[1]], 3)
+    #fnb = fitdistr(data, "negative binomial")$loglik
+    normalFactor = round(fitdistr(data, "normal")$loglik, 3)
+    logFactor = round(fitdistr(data, "lognormal")$loglik, 3)
+    highestDistFactor <- max(c(normalFactor, logFactor))
+    
+    paste0(
+      "Skewness: ", skewnessFactor, "\n",
+      "Kusrtosis: ", kurtosisFactor, "\n",
+      "Normal Distribution Factor: ", normalFactor, "\n",
+      "Logarithmic Distribution Factor: ", logFactor
+    )
+  }
+}
+
+#' Renders a Distribution Plot.
+#' 
+#' @param index The index from swiss dataset to render
+#' @param name The name from the swiss dataset to render
+#' @param doRender If this plot should be rendered; by default TRUE
+#'
+renderDistribution <- function(index, name, doRender = TRUE) {
+  if (doRender) {
+    renderPlot({
       data <- swiss[, index]
-      
       dataSorted <- seq(from = min(data), to = max(data), length = length(data))
       y = dnorm(dataSorted, mean = mean(data), sd = sd(data))
       plot(density(data), main = name);
       lines(dataSorted, y, col = "red")
-    }
-  })
+    })
+  }
 }
 
-#' Renders histogram plots.
+#' Renders a Histrogram.
 #' 
-#' @param output The output from the server
-#' @param selectedVar The first variable that was selected at the UI
-#' @param selectedVar2 The second variable that was selected at the UI
-#' @param selectedBins The number bins for the histogram
-#' 
-renderHistogram <- function(output, selectedVar, selectedVar2, selectedBins) {
-  output$histogram <- renderPlot({
-    print(selectedBins)
-    index <- strtoi(selectedVar()[1])
-    name <- selectedVar()[2]
-    data <- swiss[, index]
-    
-    bins <- seq(min(data), max(data), length.out = selectedBins + 1)
-    hist(data, breaks = bins, xlab = name)
-  })
-  output$histogram2 <- renderPlot({
-    if (!identical(strtoi(selectedVar()[1]), strtoi(selectedVar2()[1]))) {
-      index <- strtoi(selectedVar2()[1])
-      name <- selectedVar2()[2]
+#' @param index The index from swiss dataset to render
+#' @param name The name from the swiss dataset to render
+#' @param doRender If this plot should be rendered; by default TRUE
+#'
+renderHistogram <- function(index, name, bins = 30, doRender = TRUE) {
+  if (doRender) {
+    renderPlot({
       data <- swiss[, index]
-      
-      bins <- seq(min(data), max(data), length.out = selectedBins + 1)
-      hist(data, breaks = bins, xlab = name)
-    }
-  })
+      binsSeq <- seq(min(data), max(data), length.out = bins + 1)
+      hist(data, breaks = binsSeq, xlab = name)
+    })
+  }
 }
 
-#' Renders box plots.
+#' Renders a Box Plot.
 #' 
-#' @param output The output from the server
-#' @param selectedVar The first variable that was selected at the UI
-#' @param selectedVar2 The second variable that was selected at the UI
-#' 
-renderBoxPlot <- function(output, selectedVar, selectedVar2) {
-  output$boxPlot <- renderPlot({
-    index <- strtoi(selectedVar()[1])
-    name <- selectedVar()[2]
-    data <- swiss[, index]
-    
-    boxplot(data, horizontal = TRUE)
-  })
-  output$boxPlot2 <- renderPlot({
-    if (!identical(strtoi(selectedVar()[1]), strtoi(selectedVar2()[1]))) {
-      index <- strtoi(selectedVar2()[1])
-      name <- selectedVar2()[2]
+#' @param index The index from swiss dataset to render
+#' @param name The name from the swiss dataset to render
+#' @param bins The bins for the histogram; by default 30
+#' @param doRender If this plot should be rendered; by default TRUE
+#'
+renderBoxPlot <- function(index, name, bins = 30, doRender = TRUE) {
+  if (doRender) {
+    renderPlot({
       data <- swiss[, index]
-      
       boxplot(data, horizontal = TRUE)
-    }
-  })
+    })
+  }
 }
 
-#' Renders violin plots.
+#' Renders a Violin Plot.
 #' 
-#' @param output The output from the server
-#' @param selectedVar The first variable that was selected at the UI
-#' @param selectedVar2 The second variable that was selected at the UI
-#' 
-renderViolinPlot <- function(output, selectedVar, selectedVar2) {
-  output$vioPlot <- renderPlot({
-    index <- strtoi(selectedVar()[1])
-    name <- selectedVar()[2]
-    data <- swiss[, index]
-    
-    vioplot(data, horizontal = TRUE)
-  })
-  output$vioPlot2 <- renderPlot({
-    if (!identical(strtoi(selectedVar()[1]), strtoi(selectedVar2()[1]))) {
-      index <- strtoi(selectedVar2()[1])
-      name <- selectedVar2()[2]
+#' @param index The index from swiss dataset to render
+#' @param name The name from the swiss dataset to render
+#' @param doRender If this plot should be rendered; by default TRUE
+#'
+renderViolinPlot <- function(index, name, doRender = TRUE) {
+  if (doRender) {
+    renderPlot({
       data <- swiss[, index]
-      
       vioplot(data, horizontal = TRUE)
-    }
-  })
+    })
+  }
 }
 
-#' Renders Q-Q plots.
+#' Renders a QQ Plot.
 #' 
-#' @param output The output from the server
-#' @param selectedVar The first variable that was selected at the UI
-#' @param selectedVar2 The second variable that was selected at the UI
-#' 
-renderQQPlot <- function(output, selectedVar, selectedVar2) {
-  output$qqPlot <- renderPlot({
-    index <- strtoi(selectedVar()[1])
-    name <- selectedVar()[2]
-    data <- swiss[, index]
-    
-    qqnorm(data, main = name)
-    qqline(data, col = 'red')
-  })
-  output$qqPlot2 <- renderPlot({
-    if (!identical(strtoi(selectedVar()[1]), strtoi(selectedVar2()[1]))) {
-      index <- strtoi(selectedVar2()[1])
-      name <- selectedVar2()[2]
+#' @param index The index from swiss dataset to render
+#' @param name The name from the swiss dataset to render
+#' @param doRender If this plot should be rendered; by default TRUE
+#'
+renderQQPlot <- function(index, name, doRender = TRUE) {
+  if (doRender) {
+    renderPlot({
       data <- swiss[, index]
-      
       qqnorm(data, main = name)
       qqline(data, col = 'red')
-    }
-  })
+    })
+  }
 }
 
-#' Renders scatter plots.
+#' Renders a Scatter Plot.
 #' 
-#' @param output The output from the server
-#' @param selectedVar The first variable that was selected at the UI
-#' @param selectedVar2 The second variable that was selected at the UI
-#' 
-renderScatterPlot <- function(output, selectedVar, selectedVar2) {
-  output$scatterPlot <- renderPlot({
-    index <- strtoi(selectedVar()[1])
-    name <- selectedVar()[2]
-    data <- swiss[, index]
-    
-    plot(data)
-  })
-  output$scatterPlot2 <- renderPlot({
-    if (!identical(strtoi(selectedVar()[1]), strtoi(selectedVar2()[1]))) {
-      index <- strtoi(selectedVar2()[1])
-      name <- selectedVar2()[2]
+#' @param index The index from swiss dataset to render
+#' @param name The name from the swiss dataset to render
+#' @param doRender If this plot should be rendered; by default TRUE
+#'
+renderScatterPlot <- function(index, name, doRender = TRUE) {
+  if (doRender) {
+    renderPlot({
       data <- swiss[, index]
-      
       plot(data)
-    }
-  })
-  output$scatterPlotMatrix <- renderPlot({
-    pairs(swiss, lower.panel = panel.smooth, upper.panel = corFunction)
-  })
+    })
+  }
 }
 
 #' Defines the initial function which is called by the shiny app backend server.
@@ -191,39 +185,104 @@ renderScatterPlot <- function(output, selectedVar, selectedVar2) {
 #' @param output The output object to the shiny app frontend from this backend server
 #' @return This function returns void as the shiny server back ignores all returns from it.
 #'   However, the given output variable is described here in more detail, as this object's
-#'   fileds are required for the frontend (UI) to work successfully. The following fields
+#'   fields are required for the frontend (UI) to work successfully. The following fields
 #'   in the output object can be defined:
 #'   \describe{
-#'     \item{output$distribution} The variable for some distribution
-#'     \item{output$histogram} The variable for a histogram (i.e. hist(x, ...))
-#'     \item{output$boxPlot} The varibale for a boxplot (i.e. boxplot(x, ...))
-#'     \item{output$kernelDestinyEstimation} The variable for a Kernel Density Estimation function (i.e. density(x, ...))
-#'     \item{output$vioPlot} The variable for a Violin Plot (i.e. vioplot(x, ...));
-#'     \item{output$qqPlot} The variable for a Quantile-Quantile Plot (QQ Plot) (i.e. qqplot, qqnorm, qqline, ...)
-#'     \item{output$scatterPlot} The variable for a Scatterplot or Scatterplot Matrix (i.e. plot(x, y, ...), pairs(x, ...))
-#'     \item{output$mosaicPlot} The variable for a Mosaic Plot (i.e. mosaicplot(x, ...))
+#'     \item{output$ui} The whole main panel UI for the frontend to render
 init <- function(input, output) {
-  # this is only example code that can be removed
-  output$renderedSelectdPredefinedFilter <-
-    renderPrint({
-      input$selectdPredefinedFilter
-    })
+
+  # create reactive functions to parse input variables
+  selectedVar <- reactive({
+    selectedVar <- strsplit(input$selectedVar, ",")[[1]] # list("1","Fertility")
+  })
+  selectedVar2 <- reactive({
+    selectedVar2 <- strsplit(input$selectedVar2, ",")[[1]] # list("1","Fertility")
+  })
   
-  # reactive functions for parsin input
-  selectedVar <- reactive(
-    selectedVar <- strsplit(input$selectedVar, ",")[[1]]
-  )
-  selectedVar2 <- reactive(
-    selectedVar2 <- strsplit(input$selectedVar2, ",")[[1]]
-  )
+  # generate summary outputs for first selected variable
+  output$statsName1 <- renderText({
+    index = strtoi(selectedVar()[1])
+    name <- selectedVar()[2]
+    render <- doRenderVariables(index)
+    renderStatsName(name, doRender = render)
+  })
+  output$statsName2 <- renderText({
+    index = strtoi(selectedVar2()[1])
+    name <- selectedVar2()[2]
+    render <- doRenderVariables(index)
+    renderStatsName(name, doRender = render)
+  })
   
-  # print plots
-  renderDistribution(output, selectedVar, selectedVar2)
-  renderHistogram(output, selectedVar, selectedVar2, input$bins)
-  renderBoxPlot(output, selectedVar, selectedVar2)
-  renderViolinPlot(output, selectedVar, selectedVar2)
-  renderQQPlot(output, selectedVar, selectedVar2)
-  renderScatterPlot(output, selectedVar, selectedVar2)
+  # generate summary outputs for selected variables
+  output$summary1 <- renderPrint({
+    index = strtoi(selectedVar()[1])
+    render <- doRenderVariables(index)
+    renderSummary(index, doRender = render)
+  })
+  output$summary2 <- renderPrint({
+    index = strtoi(selectedVar2()[1])
+    render <- doRenderVariables(index)
+    renderSummary(index, doRender = render)
+  })
+  
+  # generate metadata outputs for selected variables
+  output$meta1 <- renderText({
+    index = strtoi(selectedVar()[1])
+    render <- doRenderVariables(index)
+    renderMetaData(index, doRender = render)
+  })
+  output$meta2 <- renderText({
+    index = strtoi(selectedVar2()[1])
+    render <- doRenderVariables(index)
+    renderMetaData(index, doRender = render)
+  })
+  
+  # render UI based on selected variables
+  output$ui <- renderUI({
+    index <- strtoi(selectedVar()[1])
+    name <- selectedVar()[2]
+    
+    index2 <- strtoi(selectedVar2()[1])
+    name2 <- selectedVar2()[2]
+    
+    bins <- input$bins
+    render2nd <- doRender(index, index2)
+    
+    if (index == 0) {
+      tabsetPanel(
+        tabPanel("Scatteplot Matrix", renderPlot({
+          pairs(swiss, lower.panel = panel.smooth, upper.panel = corFunction)
+        }))
+      )
+    } else {
+      tabsetPanel(id = "selectedTab", selected = input$selectedTab,
+        tabPanel("Distribution",
+           renderDistribution(index, name),
+           renderDistribution(index2, name2, doRender = render2nd)
+        ),
+        tabPanel("Histogram",
+          renderHistogram(index, name, bins = bins),
+          renderHistogram(index2, name2, bins = bins, doRender = render2nd)
+        ),
+        tabPanel("Box Plot",
+          renderBoxPlot(index, name),
+          renderBoxPlot(index2, name2, doRender = render2nd)
+        ),
+        tabPanel("Violin Plot",
+          renderViolinPlot(index, name),
+          renderViolinPlot(index2, name2, doRender = render2nd)
+        ),
+        tabPanel("QQ Plot",
+          renderQQPlot(index, name),
+          renderQQPlot(index2, name2, doRender = render2nd)
+        ),
+        tabPanel("Scatterplot",
+          renderScatterPlot(index, name),
+          renderScatterPlot(index2, name2, doRender = render2nd)
+        )
+      )
+    }
+  })
 }
 
 # initialize shiny app server
