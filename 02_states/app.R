@@ -1,7 +1,9 @@
 library(shiny)
 library(vioplot)
-library(moments)
+#library(moments)
+library(e1071)
 library(MASS)
+library(shinythemes)
 
 ss <- as.data.frame(state.x77)
 
@@ -149,7 +151,7 @@ server <- function(input, output) {
       fnb = try(round(fitdistr(x, "negative binomial")$loglik,3), TRUE)
       fn = fitdistr(x, "normal")$loglik
       fln = fitdistr(x, "lognormal")$loglik
-      if (!is.numeric(fnb)) fnb = "-_-"
+      if (!is.numeric(fnb)) fnb = "-"
       as.character(paste0(
       " Skew.: ",round(skewness(x)[[1]],3),
       " Kurt.: ",round(kurtosis(x)[[1]],3),'\n',
@@ -190,6 +192,14 @@ server <- function(input, output) {
       qqline(x)
     }
   })
+  output$hist <- renderPlot({
+    if (input$chooser != 0) {
+      x <- chooseData(input$chooser)
+     #hist(x, bins)
+     hist(x, breaks = input$bins, col = 'skyblue', border = 'white')
+     
+    }
+  })
   output$p3 <- renderPlot({
     if (input$chooser != 0) {
       x <- chooseData(input$chooser)
@@ -224,12 +234,12 @@ server <- function(input, output) {
 }
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(# Application title
-  
+ui <- fluidPage(theme = shinytheme("cyborg"),
+                
   #id <- textOutput("id"),
   #print(id),
   #is_all <- grepl(id,"All"),
-  fluidRow(
+  fluidRow(theme = shinytheme("cyborg"),
     column(
       3,
       # Sidebar with a slider input for the number of bins
@@ -248,7 +258,18 @@ ui <- fluidPage(# Application title
         label = h3("Choose comparison"),
         choices = chooser2_options,
         selected = 0
-      )
+      ),
+      
+      sliderInput("bins",
+                  "Number of bins:",
+                  min = 5,
+                  max = 50,
+                  value = 30),
+      
+      plotOutput("hist")
+      
+      
+      
       
 
     ),
@@ -256,22 +277,23 @@ ui <- fluidPage(# Application title
     # Show a plot of the generated distribution
     column(9,
            
-           fluidRow(column(12,
+           fluidRow(theme = shinytheme("cyborg"),column(12,
                            h2(
                              textOutput("title")
                            ))),
-           fluidRow(column(6,
+           fluidRow(theme = shinytheme("cyborg"),column(6,
                            verbatimTextOutput("summary")
                     ),
                     column(6, 
                            verbatimTextOutput("summary2")
-                    )),
+                    )
+                    ),
            
            if (grepl("All",textOutput("id"))) {
-             fluidRow(column(12, plotOutput("p1")))
+             fluidRow(theme = shinytheme("cyborg"),column(12, plotOutput("p1")))
              
            }  else {
-             fluidRow(
+             fluidRow(theme = shinytheme("cyborg"),
                column(6,
                       plotOutput("p1")),
                column(6,
